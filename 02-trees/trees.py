@@ -1,5 +1,6 @@
 from math import log
 import operator
+import treePlotter
 
 '''
 关于信息熵的理解可以参考，简单来说熵值越高表示信息量越大，越复杂
@@ -124,8 +125,50 @@ def createTree(dataSet, labels):
         myTree[bestFeatLabel][value] = subMyTree
     return myTree
 
+'''
+决策树预测函数
+'''
+def classify(inputTree, featureLabels, testVec):
+    firstStr = list(inputTree.keys())[0]
+    secondDict = inputTree[firstStr]
+    featureIndex = featureLabels.index(firstStr)
+    for key in secondDict.keys():
+        if testVec[featureIndex] == key:
+            if type(secondDict[key]).__name__ == "dict":
+                classLabel = classify(secondDict[key], featureLabels, testVec)
+            else:
+                classLabel = secondDict[key]
+    return classLabel
+
+'''
+保存已生成的决策树
+'''
+def storeTree(inputTree, filename):
+    import pickle
+    fw = open(filename, 'wb+')
+    pickle.dump(inputTree, fw)
+    fw.close()
+
+'''
+读取决策树
+'''
+def grabTree(filename):
+    import pickle
+    fr = open(filename, 'rb')
+    return pickle.load(fr)
+
+def test():
+    dataSet, labels = createDataSet()
+    subLabels = labels[:]
+    myTree = createTree(dataSet, subLabels)
+    # treePlotter.createPlot(myTree)
+    result = classify(myTree, labels, [1, 1])
+    print(result)
 
 if __name__ == "__main__":
-    dataSet, labels = createDataSet()
-    myTree = createTree(dataSet, labels)
-    print(myTree)
+    fr = open('lenses.txt')
+    lenses = [inst.strip().split('\t') for inst in fr.readlines()]
+    lensesLabels = ['age', 'prescript', 'astigmatic', 'tearRate']
+    lensesTree = createTree(lenses, lensesLabels)
+    treePlotter.createPlot(lensesTree)
+    print(lensesTree)
