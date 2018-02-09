@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 
 #---------------------------------------------------------------------------
 # logistic回归
+# 极大似然法：对于最大似然法，当从模型总体随机抽取n组样本观测值后，最合理的参数估计量应该使得从模型中抽取该n组样本观测值的概率最大。
+# 极大似然法：对于最大似然法，当从数据集中随机抽取n组样本的y值后，最合理的w向量应该使得从模型中抽取该n组样本y值的概率最大。
 #---------------------------------------------------------------------------
 
 
@@ -50,6 +52,38 @@ def gradAscent(dataSet, labels):
     return weights
 
 '''
+随机梯度上升
+'''
+def stocGradAscent0(dataMatrix, classLabels):
+    m,n = shape(dataMatrix)
+    alpha = 0.01
+    weights = ones(n)
+    for i in range(m):
+        h = sigmoid(sum(dataMatrix[i] * weights))
+        error = classLabels[i] - h
+        weights = weights + alpha * error * dataMatrix[i]
+    return weights
+
+'''
+随机梯度上升
+'''
+def stocGradAscent1(dataMatrix, classLabels, numIter=150):
+    m,n = shape(dataMatrix)
+    alpha = 0.01
+    weights = ones(n)
+    for j in range(numIter):
+        dataIndex = list(range(m))
+        for i in range(m):
+            # 每次迭代调整a
+            alpha = 0.01 + 4 / (1.0 + i + j)
+            randIndex = int(random.uniform(0, len(dataIndex)))
+            h = sigmoid(sum(dataMatrix[randIndex] * weights))
+            error = classLabels[randIndex] - h
+            weights = weights + alpha * error * dataMatrix[randIndex]
+            del(dataIndex[randIndex])
+    return weights
+
+'''
 画出决策边界
 '''
 def plotBestFit(weights):
@@ -87,8 +121,66 @@ def plotBestFit(weights):
     plt.show()
 
 
+#----------------------------------------------------------------------
+# 案例
+#----------------------------------------------------------------------
+'''
+预测函数
+'''
+def classifyVector(inX, weights):
+    prob = sigmoid(sum(inX * weights))
+    if prob > 0.5:
+        return 1
+    else:
+        return 0
+
+def colicTest():
+    trainingSet = []
+    trainingLabels = []
+    # 使用训练集训练参数
+    with open('horseColicTraining.txt') as frTrain:
+        for line in frTrain.readlines():
+            currLine = line.strip().split('\t')
+            lineArr = []
+            for i in range(21):
+                lineArr.append(float(currLine[i]))
+            trainingSet.append(lineArr)
+            trainingLabels.append(float(currLine[21]))
+    trainWeights = stocGradAscent1(array(trainingSet), trainingLabels, 500)
+    errorCount = 0
+    numTestVec = 0.0
+    # 使用测试集测试错误率
+    with open('horseColicTest.txt') as frTest:
+        for line in frTest.readlines():
+            numTestVec += 1.0
+            currLine = line.strip().split('\t')
+            lineArr = []
+            for i in range(21):
+                lineArr.append(float(currLine[i]))
+            if int(classifyVector(array(lineArr), trainWeights)) != int(currLine[21]):
+                errorCount += 1
+    errorRate = (float(errorCount)/numTestVec)
+    print('the error rate of this test is: %f' % errorRate)
+    return errorRate
+
+'''
+多次调用colicTest求平均值
+'''
+def multiTest():
+    numTests = 10
+    errorSum = 0.0
+    for k in  range(numTests):
+        errorSum += colicTest()
+    print('after %d iterations the average error rate is %f' % (numTests, errorSum/float(numTests)))
+
 if __name__ == '__main__':
-    dataMat, labelsMat = loadDataSet()
-    weights = gradAscent(dataMat, labelsMat)
+    # dataMat, labelsMat = loadDataSet()
+    # weights = gradAscent(dataMat, labelsMat)
     # getA() 将weights矩阵转换为数组
-    plotBestFit(weights.getA())
+    # plotBestFit(weights.getA())
+
+    # dataMat, labelsMat = loadDataSet()
+    # weights = stocGradAscent1(array(dataMat), labelsMat)
+    # plotBestFit(weights)
+
+    multiTest()
